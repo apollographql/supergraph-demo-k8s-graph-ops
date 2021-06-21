@@ -1,0 +1,26 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  
+jobs:
+  k8s:
+    name: CI - k8s
+    runs-on: ubuntu-18.04
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: update kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
+          chmod +x ./kind
+          mkdir -p $HOME/.kind/bin
+          mv ./kind $HOME/.kind/bin/kind
+          echo "PATH=$HOME/.kind/bin:$PATH" >> ${GITHUB_ENV}
+      -
+        name: test-k8s
+        run: .scripts/ci-k8s.sh
