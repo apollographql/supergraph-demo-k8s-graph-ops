@@ -6,7 +6,7 @@ if [ $(kind get clusters | grep -E 'kind') ]
 then
   kind delete cluster --name kind
 fi
-kind create cluster --image kindest/node:v1.21.1 --config=init/kind-cluster.yaml --wait 5m
+kind create cluster --image kindest/node:v1.21.1 --config=clusters/kind-cluster.yaml --wait 5m
 
 kubectl apply -k infra/dev
 
