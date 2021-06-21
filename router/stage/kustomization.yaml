@@ -4,5 +4,6 @@ bases:
 - ../base
 configMapGenerator:
 - name: supergraph
+  behavior: replace
   files:
   - ./supergraph.graphql
