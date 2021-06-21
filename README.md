@@ -1,6 +1,6 @@
 # Supergraph Demo - GitOps Config Repo
 
-![CI](https://github.com/apollographql/supergraph-demo-gitops/actions/workflows/main.yml/badge.svg)
+![CI](https://github.com/prasek/supergraph-demo-gitops/actions/workflows/main.yml/badge.svg)
 
 This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `code repo`.
 
