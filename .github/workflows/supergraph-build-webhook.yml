@@ -110,27 +110,28 @@ jobs:
           base: main
           delete-branch: true
       -
-       name: enable pull request automerge
-       if: |
-         steps.check.outputs.result == matrix.target-file &&
-         (
-           steps.cpr.outputs.pull-request-operation == 'created' ||
-           steps.cpr.outputs.pull-request-operation == 'updated'
-         )
-       uses: peter-evans/enable-pull-request-automerge@v1
-       with:
-         token: ${{ secrets.PAT }}
-         pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-         merge-method: rebase
-      - name: Check output
+        name: enable pull request automerge
         if: |
-          steps.check.outputs.result == '\$SUPERGRAPH' &&
-          steps.cpr.outputs.pull-request-operation == 'created'
+          steps.cpr.outputs.pull-request-operation == 'created' ||
+          steps.cpr.outputs.pull-request-operation == 'updated'
+        uses: peter-evans/enable-pull-request-automerge@v1
+        with:
+          token: ${{ secrets.PAT }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+      -
+        name: Check output
+        if: |
+          steps.cpr.outputs.pull-request-operation == 'created' ||
+          steps.cpr.outputs.pull-request-operation == 'updated'
         run: |
+          echo PR CREATED or MODIFIED
           echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
           echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
-      - name: No changes detected
+      -
+        name: No changes detected
         if: |
-          steps.check.outputs.result != matrix.target-file
+          steps.cpr.outputs.pull-request-operation != 'created' &&
+          steps.cpr.outputs.pull-request-operation != 'updated'
         run: |
-          echo "No changes to '$GRAPH_REF' detected"
+          echo "No changes detected."
