@@ -1,5 +1,9 @@
 #!/bin/bash
 
+KUSTOMIZE_ENV="${1:-base}"
+
+echo "Using ${KUSTOMIZE_ENV}/kustomization.yaml"
+
 kind --version
 
 if [ $(kind get clusters | grep -E 'kind') ]
@@ -8,9 +12,10 @@ then
 fi
 kind create cluster --image kindest/node:v1.21.1 --config=clusters/kind-cluster.yaml --wait 5m
 
-kubectl apply -k infra/dev
+# important: use a newer kubectl version that supports extended kustomize resources
+kubectl apply -k infra/$KUSTOMIZE_ENV
 
-kubectl apply -k subgraphs/dev
+kubectl apply -k subgraphs/$KUSTOMIZE_ENV
 
 echo waiting for nginx controller to start ...
 
@@ -24,7 +29,7 @@ code=1
 last=""
 until [[ $retry -le 0 || $code -eq 0 ]]
 do
-  result=$(kubectl apply -k router/dev 2>/dev/null)
+  result=$(kubectl apply -k router/$KUSTOMIZE_ENV 2>/dev/null)
   code=$?
 
   if [[ "$result" != "$last" ]]

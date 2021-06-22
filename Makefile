@@ -4,25 +4,21 @@ default: demo-k8s
 .PHONY: demo-k8s
 demo-k8s: k8s-up k8s-smoke k8s-down
 
-.PHONY: publish
-publish:
-	.scripts/publish.sh
-
-.PHONY: unpublish
-unpublish:
-	.scripts/unpublish.sh
-
-.PHONY: graph-api-env
-graph-api-env:
-	@.scripts/graph-api-env.sh
-
-.PHONY: k8s-config
-k8s-config:
-	.scripts/k8s-router-config.sh
-
 .PHONY: k8s-up
 k8s-up:
 	.scripts/k8s-up.sh
+
+.PHONY: k8s-up-dev
+k8s-up-dev:
+	.scripts/k8s-up.sh dev
+
+.PHONY: k8s-up-stage
+k8s-up-stage:
+	.scripts/k8s-up.sh stage
+
+.PHONY: k8s-up-prod
+k8s-up-prod:
+	.scripts/k8s-up.sh prod
 
 .PHONY: k8s-query
 k8s-query:
@@ -44,9 +40,21 @@ k8s-graph-dump:
 k8s-down:
 	.scripts/k8s-down.sh
 
-.PHONY: ci-k8s
-ci-k8s:
-	@.scripts/ci-k8s.sh
+.PHONY: k8s-ci
+k8s-ci:
+	@.scripts/k8s-ci.sh
+
+.PHONY: k8s-ci-dev
+k8s-ci-dev:
+	@.scripts/k8s-ci.sh dev
+
+.PHONY: k8s-ci-stage
+k8s-ci-stage:
+	@.scripts/k8s-ci.sh stage
+
+.PHONY: k8s-ci-prod
+k8s-ci-prod:
+	@.scripts/k8s-ci.sh prod
 
 .PHONY: dep-act
 dep-act:
@@ -71,3 +79,15 @@ act-rebase:
 .PHONY: docker-prune
 docker-prune:
 	.scripts/docker-prune.sh
+
+.PHONY: promote-dev-stage
+promote-dev-stage:
+	cp -r infra/dev/* infra/stage
+	cp -r subgraphs/dev/* subgraphs/stage
+	cp -r router/dev/* router/stage
+
+.PHONY: promote-stage-prod
+promote-stage-prod:
+	cp -r infra/stage/* infra/prod
+	cp -r subgraphs/stage/* subgraphs/prod
+	cp -r router/stage/* router/prod

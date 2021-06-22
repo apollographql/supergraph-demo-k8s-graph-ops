@@ -23,4 +23,4 @@ jobs:
           echo "PATH=$HOME/.kind/bin:$PATH" >> ${GITHUB_ENV}
       -
         name: test-k8s
-        run: .scripts/ci-k8s.sh
+        run: .scripts/k8s-ci.sh
