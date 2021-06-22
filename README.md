@@ -1,24 +1,39 @@
 # Supergraph Demo - GitOps Config Repo
 
+This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`.
+
 ![CI](https://github.com/prasek/supergraph-demo-gitops/actions/workflows/main.yml/badge.svg)
+
+![Apollo Federation with Supergraphs](docs/media/supergraph.png)
 
 ## Welcome
 
-This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`, following the [Declarative GitOps CD for Kubernetes Best Practices](https://argoproj.github.io/argo-cd/user-guide/best_practices/):
+This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`.
 
-* `source repo` - [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) produces the artifacts:
+It follows the [Declarative GitOps CD for Kubernetes Best Practices](https://argoproj.github.io/argo-cd/user-guide/best_practices/):
+
+* `source repo`
+  * [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) produces the artifacts:
   * subgraph docker images w/ embedded subgraph schemas
   * supergraph-router docker image that can be fed a composed supergraph schema via
     * (a) Apollo Uplink - for update in place
     * (b) via a `ConfigMap` for declarative k8s config management
+  * CI:
+    * builds/publishes container images to container registry
+    * auto bumps version numbers
+    * creates PRs to propagate candidate configs and version bumps to `config repo`
 
-* `config repo` - has the full k8s configs for dev, stage, and prod environments:
-  * cluster - base cluster & GitOps config
-  * infra - nginx, etc.
-  * router - supergraph router config
-  * subgraphs - products, inventory, users
+* `config repo`
+  * has the full k8s configs for dev, stage, and prod environments:
+    * cluster - base cluster & GitOps config
+    * infra - nginx, etc.
+    * router - supergraph router config
+    * subgraphs - products, inventory, users
+  * supports promoting config from dev -> stage -> prod
+    * `make promote-dev-stage`
+    * `make promote-stage-prod`
 
-If you're not familiar with `kustomiize` and k8s-native config management, checkout the following:
+If you're not familiar with `kustomize` and k8s-native config management, checkout the following:
 
 * [https://kustomize.io/](https://kustomize.io/).
 * [kustomize helm example](https://github.com/fluxcd/flux2-kustomize-helm-example)
@@ -38,19 +53,19 @@ then run:
 make demo-k8s
 ```
 
-which applies the following:
+which creates:
+
+* local k8s cluster with the NGINX Ingress Controller
+* graph-router `Deployment` configured to use a supergraph `ConfigMap`
+* graph-router `Service` and `Ingress`
+
+and applies the following:
 
 ```
 kubectl apply -k infra/dev
 kubectl apply -k subgraphs/dev
 kubectl apply -k router/dev
 ```
-
-this creates:
-
-* local k8s cluster with the NGINX Ingress Controller
-* graph-router `Deployment` configured to use a supergraph `ConfigMap`
-* graph-router `Service` and `Ingress`
 
 using [router/base/router.yaml](router/base/router.yaml):
 

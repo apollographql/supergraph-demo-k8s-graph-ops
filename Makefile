@@ -2,7 +2,7 @@
 default: demo-k8s
 
 .PHONY: demo-k8s
-demo-k8s: k8s-up k8s-smoke k8s-down
+demo-k8s: k8s-up-dev k8s-smoke k8s-down
 
 .PHONY: k8s-up
 k8s-up:
