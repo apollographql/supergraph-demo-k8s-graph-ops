@@ -40,7 +40,7 @@ If you're not familiar with `kustomize` and k8s-native config management, checko
 * [multi-tenancy example](https://github.com/fluxcd/flux2-multi-tenancy)
 * [best-practices discussion thread](https://github.com/fluxcd/flux/issues/1071)
 
-## Deploying a Graph Router to Kubernetes with kustomize
+## Deploying a GraphQL Router to Kubernetes
 
 You'll need:
 
