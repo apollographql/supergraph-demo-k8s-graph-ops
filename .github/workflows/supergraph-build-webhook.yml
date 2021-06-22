@@ -28,7 +28,7 @@ jobs:
             target-branch: "main"
             target-file: "router/prod/supergraph.graphql"
             pr-branch: "supergraph-router-prod"
-    name: ${{ matrix.target-branch }}
+    name: ${{ matrix.graph-ref }}
     concurrency:
       group: ${{ matrix.target-branch }}
       cancel-in-progress: true
