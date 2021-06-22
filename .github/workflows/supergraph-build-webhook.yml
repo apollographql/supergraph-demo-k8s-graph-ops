@@ -3,6 +3,7 @@ name: Supergraph Build Webhook
 on:
   schedule:
     - cron: '*/5 * * * *'
+  workflow_dispatch: {}
   repository_dispatch:
     types: [studio-build-webhook]
 
