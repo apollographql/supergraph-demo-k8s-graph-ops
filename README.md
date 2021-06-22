@@ -19,8 +19,8 @@ It follows the [Declarative GitOps CD for Kubernetes Best Practices](https://arg
     * (a) Apollo Uplink - for update in place
     * (b) via a `ConfigMap` for declarative k8s config management
   * CI:
+    * auto bumps package version numbers & container tags
     * builds/publishes container images to container registry
-    * auto bumps version numbers
     * creates PRs to propagate candidate configs and version bumps to `config repo`
 
 * `config repo`
@@ -32,6 +32,10 @@ It follows the [Declarative GitOps CD for Kubernetes Best Practices](https://arg
   * supports promoting config from dev -> stage -> prod
     * `make promote-dev-stage`
     * `make promote-stage-prod`
+  * CD:
+    * via GitOps operators like [Flux](https://fluxcd.io/) and [ArgoCD](https://argoproj.github.io/argo-cd/)
+    * using progressive delivery controllers like [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) and [Flagger](https://flagger.app/)
+    * or your favorite tools!
 
 If you're not familiar with `kustomize` and k8s-native config management, checkout the following:
 
