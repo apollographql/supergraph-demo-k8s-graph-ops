@@ -4,6 +4,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch: {}
   
 jobs:
   k8s:
@@ -14,13 +15,49 @@ jobs:
         name: Checkout
         uses: actions/checkout@v2
       -
-        name: update kind
+        name: update tools
         run: |
+          #kind
+          echo ---------------------------------------------------------------
+          echo kind - installing ...
+          echo ---------------------------------------------------------------
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
           chmod +x ./kind
-          mkdir -p $HOME/.kind/bin
-          mv ./kind $HOME/.kind/bin/kind
-          echo "PATH=$HOME/.kind/bin:$PATH" >> ${GITHUB_ENV}
+          echo "downloaded $(./kind --version)"
+
+          BIN_DIR=$HOME/.kind/bin
+          mkdir -p $BIN_DIR
+          mv ./kind $BIN_DIR
+          echo "$BIN_DIR" >> ${GITHUB_PATH}
+          echo ---------------------------------------------------------------
+      -
+        name: update kubectl
+        run: |
+          #kubectl
+          echo ---------------------------------------------------------------
+          echo kubectl - installing ...
+          echo ---------------------------------------------------------------
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          echo "downloaded kubectl: $(./kubectl version --short --client)"
+
+          BIN_DIR=$HOME/.kubectl/bin
+          mkdir -p $BIN_DIR
+          mv ./kubectl $BIN_DIR
+          echo "$BIN_DIR" >> ${GITHUB_PATH}
+          echo ---------------------------------------------------------------
+      -
+        name: check tools
+        run: |
+          echo ---------------------------------------------------------------
+          echo "$(kind --version)"
+          echo ---------------------------------------------------------------
+          echo "kubectl $(kubectl version --short --client)"
+          echo ---------------------------------------------------------------
       -
         name: test-k8s
-        run: .scripts/k8s-ci.sh
+        run: |
+          echo ---------------------------------------------------------------
+          echo K8S Smoke Test
+          echo ---------------------------------------------------------------
+          .scripts/k8s-ci.sh dev
