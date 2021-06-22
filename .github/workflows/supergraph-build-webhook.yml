@@ -30,7 +30,7 @@ jobs:
             pr-branch: "supergraph-router-prod"
     name: ${{ matrix.graph-ref }}
     concurrency:
-      group: ${{ matrix.target-branch }}
+      group: ${{ matrix.graph-ref }}
       cancel-in-progress: true
     env:
       APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
