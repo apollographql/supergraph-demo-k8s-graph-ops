@@ -13,9 +13,20 @@ jobs:
       matrix:
         include:
           - graph-ref: "supergraph-router@dev"
+            short-name: dev
             target-branch: "main"
             target-file: "router/dev/supergraph.graphql"
             pr-branch: "supergraph-router-dev"
+          - graph-ref: "supergraph-router@stage"
+            short-name: stage
+            target-branch: "main"
+            target-file: "router/stage/supergraph.graphql"
+            pr-branch: "supergraph-router-stage"
+          - graph-ref: "supergraph-router@prod"
+            short-name: prod
+            target-branch: "main"
+            target-file: "router/prod/supergraph.graphql"
+            pr-branch: "supergraph-router-prod"
     name: ${{ matrix.target-branch }}
     concurrency:
       group: ${{ matrix.target-branch }}
@@ -79,7 +90,7 @@ jobs:
           token: ${{ secrets.PAT }}
           committer: Supergraph Demo Bot <prasek+bot@gmail.com>
           author: Supergraph Demo Bot <prasek+bot@gmail.com>
-          commit-message: Bump supergraph schema from ${{ steps.pre-check.outputs.sha-short }} to ${{ steps.check.outputs.sha-short }}
+          commit-message: Bump ${{ matrix.short-name }} supergraph schema from ${{ steps.pre-check.outputs.sha-short }} to ${{ steps.check.outputs.sha-short }}
           title:  Bump ${{ env.GRAPH_REF }} from ${{ steps.pre-check.outputs.sha-short }} to ${{ steps.check.outputs.sha-short }}
           body: |
             Bump ${{ env.GRAPH_REF }} from ${{ steps.pre-check.outputs.sha-short }} to ${{ steps.check.outputs.sha-short }}
@@ -108,7 +119,7 @@ jobs:
        with:
          token: ${{ secrets.PAT }}
          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-         merge-method: squash
+         merge-method: rebase
       - name: Check output
         if: |
           steps.check.outputs.result == '\$SUPERGRAPH' &&
