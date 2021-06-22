@@ -2,45 +2,17 @@
 
 ![CI](https://github.com/prasek/supergraph-demo-gitops/actions/workflows/main.yml/badge.svg)
 
-This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `code repo`.
-
 ## Welcome
 
-Apollo Federation and Managed Federation have delivered significant
-improvements over schema stitching and alternate approaches. Static
-composition introduces another big step forward as we move composition out of
-the Gateway and into the CI pipeline where federated graph changes can be
-validated sooner and built into static artifacts that define how a Gateway
-should route requests across the subgraphs in a federation.
+This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`, following the [Declarative GitOps CD for Kubernetes Best Practices](https://argoproj.github.io/argo-cd/user-guide/best_practices/):
 
-Most contemporary federated GraphQL implementations dynamically compose a
-list of implementing services (subgraphs) into a GraphQL Gateway at runtime.
-There is no static artifact that can be versioned, validated, or reasoned
-about across a fleet of Gateway instances that are common in scale-out
-federated graph deployments. Gateways often rely on hard-coded behavior for
-directives like `join` or accept additional non-GraphQL configuration.
+* `source repo` - [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) produces the artifacts:
+  * subgraph docker images w/ embedded subgraph schemas
+  * supergraph-router docker image that can be fed a composed supergraph schema via
+    * (a) Apollo Uplink - for update in place
+    * (b) via a `ConfigMap` for declarative k8s config management
 
-With static composition, you can compose subgraphs into a supergraph at
-build-time resulting in a static artifact (supergraph schema) that describes
-the machinery to power a graph router at runtime. The supergraph schema
-includes directives like `join` that instruct a graph router how federate
-multiple subgraphs into a single graph for consumers to use.
-
-![Apollo Federation with Supergraphs](docs/media/supergraph.png)
-
-See also: [New Federation UX - Docs](https://www.apollographql.com/docs/federation/quickstart/)
-
-## Overview
-
-This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `code repo`.
-
-* the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `code repo` produces the artifacts:
-  * subgraph docker images w/ embedded schema
-  * supergraph-router docker image that can be fed a composed supergraph schema
-    * via the Apollo Uplink - for update in place
-    * via a `ConfigMap` for declarative k8s config management
-
-* this config repo has the full k8s configs for dev, stage, and prod environments:
+* `config repo` - has the full k8s configs for dev, stage, and prod environments:
   * cluster - base cluster & GitOps config
   * infra - nginx, etc.
   * router - supergraph router config
@@ -59,7 +31,6 @@ You'll need:
 
 * [kubectl](https://kubernetes.io/docs/tasks/tools/) - with expanded `kustomize` support for `resources`
 * [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
-* [kustomize](https://kustomize.io/)
 
 then run:
 
