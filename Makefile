@@ -60,25 +60,39 @@ k8s-ci-prod:
 dep-act:
 	curl https://raw.githubusercontent.com/nektos/act/master/install.sh | bash -s v0.2.23
 
+ubuntu-latest=ubuntu-latest=catthehacker/ubuntu:act-latest
+
 .PHONY: act
 act:
-	act -P ubuntu-18.04=nektos/act-environments-ubuntu:18.04 -W .github/workflows/main.yml -j k8s --secret-file docker.secrets
+	act -P $(ubuntu-latest) -W .github/workflows/main.yml -j k8s --secret-file docker.secrets
 
 .PHONY: act-subgraph-publish
 act-subgraph-publish:
-	act -P ubuntu-18.04=nektos/act-environments-ubuntu:18.04 -W .github/workflows/subgraph-publish.yml --secret-file graph-api.env
+	act -P $(ubuntu-latest) -W .github/workflows/subgraph-publish.yml --secret-file graph-api.env
 
 .PHONY: act-supergraph-build-webhook
 act-supergraph-build-webhook:
-	act -P ubuntu-18.04=nektos/act-environments-ubuntu:18.04 -W .github/workflows/supergraph-build-webhook.yml -s GITHUB_TOKEN --secret-file graph-api.env --detect-event
+	act -P $(ubuntu-latest) -W .github/workflows/supergraph-build-webhook.yml --secret-file graph-api.env --detect-event
 
 .PHONY: act-rebase
 act-rebase:
-	act -P ubuntu-18.04=nektos/act-environments-ubuntu:18.04 -W .github/workflows/rebase.yml -s GITHUB_TOKEN --secret-file docker.secrets --detect-event
+	act -P $(ubuntu-latest) -W .github/workflows/rebase.yml -s GITHUB_TOKEN --secret-file docker.secrets --detect-event
 
 .PHONY: docker-prune
 docker-prune:
 	.scripts/docker-prune.sh
+
+.PHONY: fetch-dev
+fetch-dev:
+	.scripts/fetch.sh dev
+
+.PHONY: fetch-stage
+fetch-stage:
+	.scripts/fetch.sh stage
+
+.PHONY: fetch-prod
+fetch-prod:
+	.scripts/fetch.sh stage
 
 .PHONY: promote-dev-stage
 promote-dev-stage:

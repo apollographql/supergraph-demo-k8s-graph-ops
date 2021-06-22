@@ -9,7 +9,7 @@ on:
 jobs:
   k8s:
     name: CI - k8s
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       -
         name: Checkout

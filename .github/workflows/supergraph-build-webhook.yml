@@ -9,23 +9,20 @@ on:
 
 jobs:
   supergraph-build-webhook:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           - graph-ref: "supergraph-router@dev"
             short-name: dev
-            target-branch: "main"
             target-file: "router/dev/supergraph.graphql"
             pr-branch: "supergraph-router-dev"
           - graph-ref: "supergraph-router@stage"
             short-name: stage
-            target-branch: "main"
             target-file: "router/stage/supergraph.graphql"
             pr-branch: "supergraph-router-stage"
           - graph-ref: "supergraph-router@prod"
             short-name: prod
-            target-branch: "main"
             target-file: "router/prod/supergraph.graphql"
             pr-branch: "supergraph-router-prod"
     name: ${{ matrix.graph-ref }}
@@ -40,8 +37,6 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v2
-        with:
-          ref: ${{ matrix.target-branch }}
       -
         name: install rover
         run: |
@@ -49,23 +44,27 @@ jobs:
           echo "PATH=$PATH:$HOME/.rover/bin" >> ${GITHUB_ENV}
       -
         id: pre-check
+        name: pre-check
         run: |
           SHA=$(shasum ${{ matrix.target-file }} | awk '{print $1}')
           echo "::set-output name=sha::$SHA"
           echo "::set-output name=sha-short::$(git rev-parse --short $SHA)"
       -
         name: supergraph fetch
-        run: rover supergraph fetch $GRAPH_REF > ${{ matrix.target-file }}
+        run: |
+          rover supergraph fetch $GRAPH_REF > ${{ matrix.target-file }}
+          echo "$(git diff --name-only)"
       -
         id: check
+        name: check
         run: |
-          echo "::set-output name=result::$(git diff --name-only | grep -E '${{ matrix.target-file }}')"
+          echo "::set-output name=result::$(git diff --name-only | grep -E $SUPERGRAPH)"
           SHA=$(shasum $SUPERGRAPH | awk '{print $1}')
           echo "::set-output name=sha::$SHA"
           echo "::set-output name=sha-short::$(git rev-parse --short $SHA)"
       -
         name: validate
-        if: steps.check.outputs.result == '$SUPERGRAPH'
+        if: steps.check.outputs.result == matrix.target-file
         env:
           RESULT: ${{ steps.check.outputs.result }}
           SHA: ${{ steps.check.outputs.sha }}
@@ -85,7 +84,7 @@ jobs:
       -
         name: create pull request
         id: cpr
-        if: steps.check.outputs.result == '$SUPERGRAPH'
+        if: steps.check.outputs.result == matrix.target-file
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.PAT }}
@@ -99,7 +98,7 @@ jobs:
             * New: SHA1 ${{ steps.check.outputs.sha }} ( ${{ steps.check.outputs.sha-short }} )
 
             <details>
-            <summary>${{ env.GRAPH_REF }} -> ${{ matrix.target-branch }}</summary>
+            <summary>${{ env.GRAPH_REF }} changes</summary>
 
             ```diff
             ${{ env.DIFF }}
@@ -108,14 +107,16 @@ jobs:
 
             </details>
           branch: ${{ matrix.pr-branch }}
-          base: ${{ matrix.target-branch }}
+          base: main
           delete-branch: true
       -
        name: enable pull request automerge
        if: |
-         steps.check.outputs.result == '$SUPERGRAPH' &&
-         steps.cpr.outputs.pull-request-operation == 'created' &&
-         matrix.target-branch == 'main'
+         steps.check.outputs.result == matrix.target-file &&
+         (
+           steps.cpr.outputs.pull-request-operation == 'created' ||
+           steps.cpr.outputs.pull-request-operation == 'updated'
+         )
        uses: peter-evans/enable-pull-request-automerge@v1
        with:
          token: ${{ secrets.PAT }}
@@ -130,7 +131,6 @@ jobs:
           echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
       - name: No changes detected
         if: |
-          steps.check.outputs.result == 0 ||
-          steps.cpr.outputs.pull-request-operation != 'created'
+          steps.check.outputs.result != matrix.target-file
         run: |
           echo "No changes to '$GRAPH_REF' detected"
