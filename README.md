@@ -90,7 +90,7 @@ spec:
       - env:
         - name: APOLLO_SCHEMA_CONFIG_EMBEDDED
           value: "true"
-        image: prasek/supergraph-router:latest
+        image: prasek/supergraph-router:1.1.1
         name: router
         ports:
         - containerPort: 4000
@@ -99,13 +99,13 @@ spec:
           name: supergraph-volume
       volumes:
       - configMap:
-          name: supergraph-c22698b7b9
+          name: supergraph-c4mh62bddt
         name: supergraph-volume
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: supergraph-c22698b7b9
+  name: supergraph-c4mh62bddt
 data:
   supergraph.graphql: |
     schema
@@ -115,7 +115,22 @@ data:
       query: Query
     }
 
-    ...
+    directive @core(feature: String!) repeatable on SCHEMA
+
+    directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+    directive @join__type(graph: join__Graph!, key: join__FieldSet) repeatable on OBJECT | INTERFACE
+
+    directive @join__owner(graph: join__Graph!) on OBJECT | INTERFACE
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    type DeliveryEstimates {
+      estimatedDelivery: String
+      fastestDelivery: String
+    }
+
+    scalar join__FieldSet
 
     enum join__Graph {
       INVENTORY @join__graph(name: "inventory" url: "http://inventory:4000/graphql")
