@@ -96,12 +96,12 @@ fetch-prod:
 
 .PHONY: promote-dev-stage
 promote-dev-stage:
-	cp -r infra/dev/* infra/stage
-	cp -r subgraphs/dev/* subgraphs/stage
-	cp -r router/dev/* router/stage
+	cp infra/dev/kustomization.yaml infra/stage
+	cp subgraphs/dev/kustomization.yaml subgraphs/stage
+	cp router/dev/kustomization.yaml router/stage
 
 .PHONY: promote-stage-prod
 promote-stage-prod:
-	cp -r infra/stage/* infra/prod
-	cp -r subgraphs/stage/* subgraphs/prod
-	cp -r router/stage/* router/prod
+	cp infra/stage/kustomization.yaml infra/prod
+	cp subgraphs/stage/kustomization.yaml subgraphs/prod
+	cp router/stage/kustomization.yaml router/prod
