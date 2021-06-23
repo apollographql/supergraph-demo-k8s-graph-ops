@@ -64,7 +64,7 @@ ubuntu-latest=ubuntu-latest=catthehacker/ubuntu:act-latest
 
 .PHONY: act
 act:
-	act -P $(ubuntu-latest) -W .github/workflows/main.yml -j k8s --secret-file docker.secrets
+	act -P $(ubuntu-latest) -W .github/workflows/main.yml --secret-file docker.secrets --detect-event
 
 .PHONY: act-subgraph-publish
 act-subgraph-publish:
