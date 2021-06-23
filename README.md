@@ -1,4 +1,4 @@
-# Supergraph Demo - GitOps Config Repo
+# Kubernetes-native GraphOps
 
 This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`.
 
@@ -6,9 +6,17 @@ This is the `config repo` for the [apollographq/supergraph-demo](https://github.
 
 ![Apollo Federation with Supergraphs](docs/media/supergraph.png)
 
-## Welcome
+Contents:
 
-This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`.
+* [Welcome](#welcome)
+* [Overview](#overview)
+* [Sourcing Supergraph Schemas from Managed Federation](#sourcing-supergraph-schemas-from-managed-federation)
+* [Deploying to Kubernetes](#deploying-to-kubernetes)
+
+## Welcome
+Large-scale graph operators use Kubernetes to run their Graph Router and Subgraph Services, with continuous app and service delivery. Kubernetes provides a mature control-plane for deploying and operating your graph using the container images produced by the [supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo` -- which propagates new docker image versions to this [supergraph-demo-k8s-graphops](https://github.com/apollographql/supergraph-demo-k8s-graphops) `config repo`. 
+
+This `config repo` shows how to use `kustomize` and GitOps to deploy your graph in Kubernetes for `dev`, `stage`, and `prod` environments. The 
 
 It follows the [Declarative GitOps CD for Kubernetes Best Practices](https://argoproj.github.io/argo-cd/user-guide/best_practices/):
 
@@ -44,7 +52,88 @@ If you're not familiar with `kustomize` and k8s-native config management, checko
 * [multi-tenancy example](https://github.com/fluxcd/flux2-multi-tenancy)
 * [best-practices discussion thread](https://github.com/fluxcd/flux/issues/1071)
 
-## Deploying a GraphQL Router to Kubernetes
+## Overview
+
+This `config repo` contains the Kubernetes config resources for `dev`, `stage` and `prod`.
+
+It sources the following artifacts:
+* container image versions published to DockerHub
+* supergraph schema versions published to Apollo Studio
+
+`kustomize` is used to apply the sourced container image versions and supergraph schema into the configuration resource for `dev`, `stage`, and `prod`.
+
+Configuration can be applied via `kubectl`, GitOps, or any deployment tooling that works with declarative Kubernetes resources.
+
+In more detail:
+* `config repo` PR is opened (auto-merge):
+  * `Bump image versions` when new Gateway docker image versions are published:
+    * see end of the [example monorepo release workflow](https://github.com/apollographql/supergraph-demo/blob/main/.github/workflows/release.yml)
+    * bumps package versions in this `source repo`.
+    * does an incremental monorepo build and pushes new docker images to DockerHub.
+    * opens `config repo` PR to bump the docker image versions in the `dev` environment (auto-merge).
+* `config repo` PR is opened (auto-merge):
+  * `Bump supergraph schema` when published by Managed federation
+    * using above techniques: webhook, `rover supergraph fetch`
+* `kustomize` generates
+  * new supergraph `ConfigMap`
+  * updated Gateway `Deployment` which references
+    * supergraph `ConfigMap`
+    * Gateway image versions
+* deployment via:
+  * `kubectl apply` in place - resulting in a [rolling upgrade](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/configGeneration.md)
+  * GitOps tools like [ArgoCD](https://argoproj.github.io/) and [Flux](https://fluxcd.io/)
+  * Progressive delivery controllers like [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) or [Flagger](https://flagger.app/)
+    * Supports `BlueGreen` and `Canary` deployment strategies
+* rollback by rolling back in git to a deployment config that uses a previous supergraph.graphql for a given environment `dev`, `stage`, `prod`.
+* separation of concerns between developer repos and ops config repos.
+* full audit trail
+
+## Sourcing Supergraph Schemas from Managed Federation
+
+1. Detecting changes to the supergraph built via Managed Federation
+
+   * Managed Federation builds a supergraph schema after each `rover subgraph publish`
+   * Changes detected with the following:
+     * [Supergraph build webhooks](https://www.apollographql.com/blog/announcement/webhooks/) - when a new supergraph schema is built in Apollo Studio
+     * `rover supergraph fetch` - to poll the Registry
+
+2. `Bump supergraph schema` PR with auto-merge enabled when changes detected
+   * Workflow: [supergraph-build-webhook.yml](https://github.com/apollographql/supergraph-demo-k8s-graphops/blob/main/.github/workflows/supergraph-build-webhook.yml)
+   * Commits a new supergraph.graphql to the `config repo` with the new version from Apollo Studio
+   * Additional CI checks on the supergraph schema are required for the PR to merge
+   * Auto-merged when CI checks pass
+
+3. Generate a new Gateway `Deployment` and `ConfigMap` using `kustomize`
+   * Once changes to `supergraph.graphql` when `Bump supergraph schema` is merged
+
+#### Gateway CD: Custom - Detailed Steps
+
+1. Register the webhook in Apollo Studio in your graph settings
+   * Send the webhook to an automation service or serverless function:
+   * ![webhook-register](docs/media/webhook-register.png)
+
+2. Adapt the webhook to a GitHub `repository_dispatch` POST request
+   * Create a webhook proxy that passes a `repo` scoped personal access token (PAT)
+   * Using a [GitHub machine account](https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#workarounds-to-trigger-further-workflow-runs) with limited access:
+   * ![webhook-proxy](docs/media/webhook-proxy.png)
+
+3. `repository_dispatch` event triggers a GitHub workflow
+   * [supergraph-build-webhook.yml](https://github.com/apollographql/supergraph-demo-k8s-graphops/blob/main/.github/workflows/supergraph-build-webhook.yml)
+   * uses both `repository_dispatch` and `scheduled` to catch any lost webhooks:
+   * ![repository_dispatch](docs/media/repository-dispatch-triggered.png)
+
+4. GitHub workflow automatically creates a PR with auto-merge enabled
+   * [supergraph-build-webhook.yml](https://github.com/apollographql/supergraph-demo-k8s-graphops/blob/main/.github/workflows/supergraph-build-webhook.yml)
+   * using a GitHub action like [Create Pull Request](https://github.com/marketplace/actions/create-pull-request) - see [concepts & guidelines](https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md)
+   * ![pr-created](docs/media/supergraph-pr-automerged.png)
+   * uses `kustomize` to generate:
+     * a new supergraph schema `ConfigMap`
+     * a new Gateway `Deployment` that references the new `ConfigMap`
+
+5. Apply the updated Gateway `Deployment` and supergraph `ConfigMap` to `dev`
+6. Promote config from `dev` -> `stage` -> `prod`
+
+## Deploying to Kubernetes
 
 You'll need:
 
