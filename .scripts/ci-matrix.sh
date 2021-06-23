@@ -67,15 +67,16 @@ for env in ${ENVIRONMENTS[@]}; do
   CHANGES=$COMMON_CHANGES
 
   >&2 echo "------------------------------"
-  >&2 echo "$env changes"
+  >&2 echo "${env} changes"
   >&2 echo "------------------------------"
 
-  for thing in ${things[@]}; do
-    DIFF=$( diff_name_only "./${thing}")
+  for thing in ${THINGS[@]}; do
+    DIFF=$( diff_name_only "./${thing}/${env}")
     if [[ -n "$DIFF" ]];  then
       CHANGES=1
 
-      >&2 echo "found ${thing}/${env} changes:"
+      >&2 echo "** ${thing} **"
+      >&2 echo "changes:"
       >&2 echo "$DIFF"
       >&2 echo "------------------------------"
     fi
