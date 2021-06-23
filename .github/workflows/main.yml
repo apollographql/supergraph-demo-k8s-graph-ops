@@ -153,3 +153,14 @@ jobs:
           echo K8S Smoke Test
           echo ---------------------------------------------------------------
           .scripts/k8s-ci.sh ${{ matrix.env }} 
+
+  ci-k8s-passed:
+    name: CI Passed
+    runs-on: ubuntu-latest
+    needs: [ci-k8s]
+    if: needs.ci-matrix.outputs.count > 0
+    steps:
+      -
+        name: Info
+        run: |
+          echo "CI Passed!"
