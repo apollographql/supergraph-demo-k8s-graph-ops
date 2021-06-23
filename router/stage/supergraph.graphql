@@ -15,6 +15,11 @@ directive @join__owner(graph: join__Graph!) on OBJECT | INTERFACE
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+enum Color {
+  BLUE
+  GREEN
+}
+
 type DeliveryEstimates {
   estimatedDelivery: String
   fastestDelivery: String
