@@ -54,7 +54,7 @@ EOF
 >&2 echo "------------------------------"
 COMMON_CHANGES=0
 for thing in ${COMMON_THINGS[@]}; do
-  DIFF=$( git diff --name-only $GITHUB_EVENT_BEFORE $GITHUB_SHA "./${thing}")
+  DIFF=$( diff_name_only "./${thing}")
   if [[ -n "$DIFF" ]];  then
     COMMON_CHANGES=1
     >&2 echo "found common changes:"
@@ -71,7 +71,7 @@ for env in ${ENVIRONMENTS[@]}; do
   >&2 echo "------------------------------"
 
   for thing in ${things[@]}; do
-    DIFF=$( git diff --name-only $GITHUB_EVENT_BEFORE $GITHUB_SHA "./${thing}")
+    DIFF=$( diff_name_only "./${thing}")
     if [[ -n "$DIFF" ]];  then
       CHANGES=1
 
