@@ -16,15 +16,15 @@ jobs:
           - graph-ref: "supergraph-router@dev"
             short-name: dev
             target-file: "router/dev/supergraph.graphql"
-            pr-branch: "supergraph-router-dev"
+            pr-branch: "bump-supergraph-dev"
           - graph-ref: "supergraph-router@stage"
             short-name: stage
             target-file: "router/stage/supergraph.graphql"
-            pr-branch: "supergraph-router-stage"
+            pr-branch: "bump-supergraph-stage"
           - graph-ref: "supergraph-router@prod"
             short-name: prod
             target-file: "router/prod/supergraph.graphql"
-            pr-branch: "supergraph-router-prod"
+            pr-branch: "bump-supergraph-prod"
     name: ${{ matrix.graph-ref }}
     concurrency:
       group: ${{ matrix.graph-ref }}
