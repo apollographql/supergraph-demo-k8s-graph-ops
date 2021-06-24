@@ -30,7 +30,7 @@ This repo follows the [Declarative GitOps CD for Kubernetes Best Practices](http
 
 `source repo` - provides docker images via `Bump image versions` PR
 
-* [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) produces the artifacts:
+* [apollographql/supergraph-demo](https://github.com/apollographql/supergraph-demo) produces the artifacts:
   * subgraph docker images w/ embedded subgraph schemas
   * supergraph-router docker image that can be fed a composed supergraph schema via
     * (a) Apollo Uplink - for update in place
