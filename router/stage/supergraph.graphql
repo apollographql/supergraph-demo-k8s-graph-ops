@@ -30,7 +30,7 @@ scalar join__FieldSet
 enum join__Graph {
   INVENTORY @join__graph(name: "inventory" url: "http://inventory:4000/graphql")
   PRODUCTS @join__graph(name: "products" url: "http://products:4000/graphql")
-  USERS @join__graph(name: "users" url: "https://users:4000/graphql")
+  USERS @join__graph(name: "users" url: "http://users:4000/graphql")
 }
 
 type Product
