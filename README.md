@@ -1,6 +1,6 @@
 # Kubernetes-native GraphOps
 
-This is the `config repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`.
+This is the `GraphOps Repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `Source Repo`.
 
 ![CI](https://github.com/apollographql/supergraph-demo-gitops/actions/workflows/main.yml/badge.svg)
 
@@ -22,94 +22,112 @@ Contents:
 
 Large-scale graph operators use Kubernetes to run their Graph Router and Subgraph Services, with continuous app and service delivery.
 
-Kubernetes provides a mature control-plane for deploying and operating your graph using container images like those produced by the [supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`.
+Kubernetes provides a mature control-plane for deploying and operating your graph using container images like those produced by the [supergraph-demo](https://github.com/apollographql/supergraph-demo) `Source Repo`.
 
 ## Overview
 
 This repo follows the [Declarative GitOps CD for Kubernetes Best Practices](https://argoproj.github.io/argo-cd/user-guide/best_practices/):
 
-`source repo` - provides docker images via `Bump image versions` PR
+`Source Repo` - provides image tag versions via `Bump image versions` PR
 
 * [apollographql/supergraph-demo](https://github.com/apollographql/supergraph-demo) produces the artifacts:
-  * subgraph docker images w/ embedded subgraph schemas
-  * supergraph-router docker image that can be fed a composed supergraph schema via
+  * Subgraph docker images w/ embedded subgraph schemas
+  * Supergraph-router docker image that can be fed a composed supergraph schema via
     * (a) Apollo Uplink - for update in place
     * (b) via a `ConfigMap` for declarative k8s config management
-* continuous integration:
-  * auto bumps package version numbers & container tags.
-  * builds/publishes container images to container registry.
+* Continuous integration:
+  * Bumps package version numbers & container tags.
+  * Builds/publishes container images to container registry.
   * `Bump image versions` PRs to propagate image version bumps to this repo.
+    * see end of the [example artifact release workflow](https://github.com/apollographql/supergraph-demo/blob/main/.github/workflows/release.yml)
 
-`graph registry` - provides supergraph schema via `Bump supergraph schema` PR
+`Graph Registry` - provides supergraph schema via `Bump supergraph schema` PR
 
-* Managed Federation publishes supergraph schemas to the Apollo Registry
-  * subgraphs publish their schema to the Apollo Registry after deployment.
-  * Apollo Studio composes subgraph schemas into a supergraph schema
-  * Apollo Studio runs a suite of schema checks and operation checks prior to publishing the supergraph schema for use.
+* Graph schemas published to the Apollo Registry
+  * Subgraphs publish their schema to the Apollo Registry after deployment.
+  * Supergraph schema is published after Apollo Studio does:
+    * Managed composition
+    * Schema checks
+    * Operation checks
+    * No breaking changes are detected
   * Published supergraph schemas are made available via:
     * `Apollo Uplink` - that the Gateway can poll for live updates (default).
     * `Apollo Registry` - for retrieval via `rover supergraph fetch`.
     * `Apollo Build Webhook` - for triggering custom CD with the composed supergraph schema.
-* `Bump supergraph schema` PRs are created by the [supergraph-build-webhook.yml workflow](https://github.com/apollographql/supergraph-demo-k8s-graphops/blob/main/.github/workflows/supergraph-build-webhook.yml):
-  * run immediately when triggered by the Apollo Build Webhook
-  * run on a schedule, to poll in case a webhook is lost
+* `Bump supergraph schema` PRs are created by the [supergraph-build-webhook.yml workflow](https://github.com/apollographql/supergraph-demo-k8s-graphops/blob/main/.github/workflows/supergraph-build-webhook.yml) via:
+  * Supergraph build webhook from Apollo Studio
+  * Polling on a schedule in case a webhook is lost
 
-`config repo` (this repo) - receives image and schema versions from above
+`GraphOps Repo` (this repo) - declarative graph config for Kubernetes for GitOps
 
-* has the full k8s configs for dev, stage, and prod environments:
-  * cluster - base cluster & GitOps config
-  * infra - nginx, etc.
-  * router - supergraph router config
-  * subgraphs - products, inventory, users
-* supports promoting config from dev -> stage -> prod
+* Declarative k8s configs for `dev`, `stage`, and `prod`
+  * [./clusters](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/clusters) - base cluster & GitOps config
+  * [./infra](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/infra) - nginx, etc.
+  * [./router](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/router) - supergraph router config
+  * [./subgraphs](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/subgraphs) - products, inventory, users
+* Promote config from `dev` -> `stage` -> `prod`
   * `make promote-dev-stage`
   * `make promote-stage-prod`
-* continous deployment:
+* Continuous deployment:
   * via GitOps operators like [Flux](https://fluxcd.io/) and [ArgoCD](https://argoproj.github.io/argo-cd/)
   * using progressive delivery controllers like [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) and [Flagger](https://flagger.app/)
   * or your favorite tools!
 
-`kustomize` is used for k8s-native config management:
+`kustomize` for k8s-native config management:
 
-* [https://kustomize.io/](https://kustomize.io/).
+* [https://kustomize.io/](https://kustomize.io/)
 * [kustomize helm example](https://github.com/fluxcd/flux2-kustomize-helm-example)
 * [multi-tenancy example](https://github.com/fluxcd/flux2-multi-tenancy)
 * [best-practices discussion thread](https://github.com/fluxcd/flux/issues/1071)
 
 ## Config Flow
 
-This `config repo` contains the Kubernetes config resources for `dev`, `stage` and `prod` environments.
+Config data flows from the following sources:
 
-* `Bump image versions` PR is opened (auto-merge):
-  * when new Gateway docker image versions are published:
-    * see end of the [example monorepo release workflow](https://github.com/apollographql/supergraph-demo/blob/main/.github/workflows/release.yml)
-    * bumps package versions in this `source repo`.
-    * does an incremental monorepo build and pushes new docker images to DockerHub.
-    * opens `config repo` PR to bump the docker image versions in the `dev` environment (auto-merge).
-* `Bump supergraph schema` PR is opened (auto-merge):
-  * when Managed Federation sends a supergraph schema build webhook
-    * `rover supergraph fetch` is used to retrieve the supergraph schema from the Apollo Registry
-* `kustomize` the config resource for each environment:
-  * new supergraph `ConfigMap`
-  * updated Gateway `Deployment` which references
-    * supergraph `ConfigMap`
-    * Gateway image versions
-* `Deploy` via:
-  * `kubectl apply` in place - resulting in a [rolling upgrade](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/configGeneration.md)
-  * GitOps tools like [ArgoCD](https://argoproj.github.io/) and [Flux](https://fluxcd.io/)
-  * Progressive delivery controllers like [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) or [Flagger](https://flagger.app/)
-    * Supports `BlueGreen` and `Canary` deployment strategies
-* `Rollback` via git and deploy as usual
+* `Source Repo`:
+  * `Bump image versions` PR is opened on the `GraphOps Repo`:
+    * when new Gateway docker image versions are published:
+      * see end of the [example artifact release workflow](https://github.com/apollographql/supergraph-demo/blob/main/.github/workflows/release.yml)
+      * bumps package versions in the `Source Repo`.
+      * does an incremental monorepo build and pushes new docker images to DockerHub.
+      * opens `GraphOps Repo` PR to bump the docker image versions in the `dev` environment (auto-merge).
+
+* `Graph Registry`:
+  * `Bump supergraph schema` PR is opened on the `GraphOps Repo`:
+    * when Managed Federation sends a supergraph schema build webhook
+      * `rover supergraph fetch` is used to retrieve the supergraph schema from the Apollo Registry.
+
+* `GraphOps Repo`:
+  * GraphOps team crafts the declarative configurations for each environment.
+    * [./clusters](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/clusters) - base cluster & GitOps config
+    * [./infra](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/infra) - nginx, etc.
+    * [./router](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/router) - supergraph router config
+    * [./subgraphs](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/tree/main/subgraphs) - products, inventory, users
+  * PRs for [docker image bumps](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/pull/42) are (auto-)merged into the `GraphOps Repo`.
+  * PR for [supergraph schema bumps](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/pull/36) are (auto-)merged into the `GraphOps Repo`.
+  * `GraphOps Repo` has definitive desired state for each environment.
+
+Continous deployment of config data flows from the `GraphOps Repo` into the target k8s cluster:
+
+* Via `kubectl apply -k` or GitOps tools like [ArgoCD](https://argoproj.github.io/argo-cd/user-guide/kustomize/) or [Flux](https://fluxcd.io/docs/components/kustomize/)
+
+* `kustomize` is used to generate parameterized config resources for each environment:
+  * for example: [./router/dev/kustomization.yaml](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/blob/main/router/dev/kustomization.yaml)
+    * `configMapGenerator` supergraph.graphl schema
+    * `images` with tag version bumps
+* Progressive delivery controllers like [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) or [Flagger](https://flagger.app/) may also be used
+  * `BlueGreen` and `Canary` deployment strategies
+* `Rollback` via git commit & GitOps or progressive delivery controller [rollback](https://argoproj.github.io/argo-rollouts/FAQ.html#how-does-bluegreen-rollback-work).
 
 ## Docker Images from Source Repo
 
-New Gateway docker image versions are published as source changes are push to the main branch of the [supergraph-demo](https://github.com/apollographql/supergraph-demo) repo.
+New Gateway docker image versions are published as source changes are pushed to the main branch of the [supergraph-demo](https://github.com/apollographql/supergraph-demo) repo.
 
 This is done by the [release.yml workflow](https://github.com/apollographql/supergraph-demo/blob/main/.github/workflows/release.yml), which does an incremental matrix build and pushes new docker images to DockerHub, and then opens a `Bump image versions` PR in this repo that uses `kustomize edit set image` to inject the new image version tags into the [kustomization.yaml](https://github.com/apollographql/supergraph-demo-k8s-graphops/blob/main/router/dev/kustomization.yaml) for each environment.
 
 ![publish-artifacts-workflow](docs/media/publish-artifacts-workflow.png)
 
-Note: This workflow can be easily adapted for a single repo per package scenarios, where they separately publish their own docker images.
+**Note: This workflow can be easily adapted for a single-repo-per-package scenarios, where they separately publish their own docker images and issue separate version bump PRs to this `GraphOps Repo`.**
 
 ## Supergraph Schemas from Graph Registry
 
@@ -122,7 +140,7 @@ Note: This workflow can be easily adapted for a single repo per package scenario
 
 2. `Bump supergraph schema` PR with auto-merge enabled when changes detected
    * Workflow: [supergraph-build-webhook.yml](https://github.com/apollographql/supergraph-demo-k8s-graphops/blob/main/.github/workflows/supergraph-build-webhook.yml)
-   * Commits a new supergraph.graphql to the `config repo` with the new version from Apollo Studio
+   * Commits a new supergraph.graphql to the `GraphOps Repo` with the new version from Apollo Studio
    * Additional CI checks on the supergraph schema are required for the PR to merge
    * Auto-merged when CI checks pass
 
@@ -160,7 +178,7 @@ You'll need:
 then run:
 
 ```sh
-make demo-k8s
+make demo
 ```
 
 which runs:
@@ -328,7 +346,7 @@ spec:
 
 and 3 subgraph services [subgraphs/base/subgraphs.yaml](subgraphs/base/subgraphs.yaml):
 
-`make demo-k8s` then runs the following in a loop until the query succeeds or 2 min timeout:
+`make demo` then runs the following in a loop until the query succeeds or 2 min timeout:
 
 ### Make a GraphQL Query
 
@@ -377,7 +395,7 @@ Success!
 
 ### Cleanup
 
-`make demo-k8s` then cleans up:
+`make demo` then cleans up:
 
 ```
 deployment.apps "graph-router" deleted
@@ -395,7 +413,7 @@ Promoting configs from from dev -> stage -> prod can be as simple as:
    * `make promote-stage-prod`
 1. push the changes
 
-The GitOps operator in each Kubernetes cluster will pull the environment configuration from this `config repo` and any changes will be applied to that cluster.
+The GitOps operator in each Kubernetes cluster will pull the environment configuration from this `GraphOps Repo` and any changes will be applied to that cluster.
 
 ## GitOps & Progressive Delivery
 
@@ -409,6 +427,6 @@ Example coming soon!
 
 ## Learn More
 
-Checkout the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `source repo`.
+Checkout the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `Source Repo`.
 
 Learn more about [how Apollo can help your teams ship faster](https://www.apollographql.com/docs/studio/).
