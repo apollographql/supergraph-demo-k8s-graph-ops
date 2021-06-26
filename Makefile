@@ -1,8 +1,8 @@
 .PHONY: default
-default: demo-k8s
+default: demo
 
-.PHONY: demo-k8s
-demo-k8s: k8s-up-dev k8s-smoke k8s-down
+.PHONY: demo
+demo: k8s-up-dev smoke k8s-down
 
 .PHONY: k8s-up
 k8s-up:
@@ -20,13 +20,25 @@ k8s-up-stage:
 k8s-up-prod:
 	.scripts/k8s-up.sh prod
 
-.PHONY: k8s-query
-k8s-query:
+.PHONY: query
+query:
 	.scripts/query.sh 80
 
-.PHONY: k8s-smoke
-k8s-smoke:
-	.scripts/k8s-smoke.sh 80
+.PHONY: smoke
+smoke:
+	.scripts/k8s-smoke.sh
+
+.PHONY: smoke-dev
+smoke-dev:
+	.scripts/k8s-smoke.sh dev
+
+.PHONY: smoke-stage
+smoke-stage:
+	.scripts/k8s-smoke.sh stage
+
+.PHONY: smoke-prod
+smoke-prod:
+	.scripts/k8s-smoke.sh prod
 
 .PHONY: k8s-nginx-dump
 k8s-nginx-dump:
@@ -99,9 +111,11 @@ promote-dev-stage:
 	cp infra/dev/kustomization.yaml infra/stage
 	cp subgraphs/dev/kustomization.yaml subgraphs/stage
 	cp router/dev/kustomization.yaml router/stage
+	cp test/dev/smoke.sh test/stage
 
 .PHONY: promote-stage-prod
 promote-stage-prod:
 	cp infra/stage/kustomization.yaml infra/prod
 	cp subgraphs/stage/kustomization.yaml subgraphs/prod
 	cp router/stage/kustomization.yaml router/prod
+	cp test/stage/smoke.sh test/prod
