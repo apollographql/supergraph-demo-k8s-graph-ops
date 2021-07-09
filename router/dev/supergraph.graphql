@@ -1,4 +1,4 @@
-schema @core(feature: "https://specs.apollo.dev/core/v0.1") @core(feature: "https://specs.apollo.dev/join/v0.1") @studio_metadata_launch(launchId: "4191d7b5-996f-40fa-8ed6-0c4269b2b11a") {
+schema @core(feature: "https://specs.apollo.dev/core/v0.1") @core(feature: "https://specs.apollo.dev/join/v0.1") @studio_metadata_launch(launchId: "a1a6993f-51f0-47e4-be52-30bb591415ed") {
   query: Query
 }
 
