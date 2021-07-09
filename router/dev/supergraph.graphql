@@ -1,4 +1,4 @@
-schema @core(feature: "https://specs.apollo.dev/core/v0.1") @core(feature: "https://specs.apollo.dev/join/v0.1") @core(feature: "https://specs.apollo.dev/inaccessible/v0.1") @core(feature: "https://specs.apollo.dev/tag/v0.1") @studio_metadata_launch(launchId: "6b4b1492-989a-4b46-9a6c-d4c79fe62713") {
+schema @core(feature: "https://specs.apollo.dev/core/v0.1") @core(feature: "https://specs.apollo.dev/join/v0.1") @studio_metadata_launch(launchId: "4191d7b5-996f-40fa-8ed6-0c4269b2b11a") {
   query: Query
 }
 
@@ -12,9 +12,10 @@ directive @join__owner(graph: join__Graph!) on OBJECT | INTERFACE
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-directive @inaccessible on FIELD_DEFINITION
-
-directive @tag(name: String!) repeatable on FIELD_DEFINITION
+enum Color {
+  BLUE
+  GREEN
+}
 
 type DeliveryEstimates {
   estimatedDelivery: String
@@ -33,15 +34,15 @@ type Product @join__owner(graph: PRODUCTS) @join__type(graph: PRODUCTS, key: "id
   createdBy: User @join__field(graph: PRODUCTS, provides: "totalProductsCreated")
   delivery(zip: String): DeliveryEstimates @join__field(graph: INVENTORY, requires: "dimensions{size weight}")
   dimensions: ProductDimension @join__field(graph: PRODUCTS)
-  id: ID! @join__field(graph: PRODUCTS) @tag(name: "hi from products") @tag(name: "hi from inventory")
+  id: ID! @join__field(graph: PRODUCTS)
   package: String @join__field(graph: PRODUCTS)
-  sku: String @join__field(graph: PRODUCTS) @tag(name: "hi from products")
+  sku: String @join__field(graph: PRODUCTS)
   variation: ProductVariation @join__field(graph: PRODUCTS)
 }
 
 type ProductDimension {
   size: String
-  weight: Float @inaccessible
+  weight: Float
 }
 
 type ProductVariation {
