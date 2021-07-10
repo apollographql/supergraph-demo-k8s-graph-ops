@@ -15,7 +15,8 @@ Contents:
 * [Supergraph Schemas from Graph Registry](#supergraph-schemas-from-graph-registry)
 * [Deploy a Kubernetes Dev Environment](#deploy-a-kubernetes-dev-environment)
 * [Promoting to Stage and Prod](#promoting-to-stage-and-prod)
-* [GitOps & Progressive Delivery](#gitops--progressive-delivery)
+* [GitOps](#gitops)
+* [Progressive Delivery](#progressive-delivery)
 * [Learn More](#learn-more)
 
 ## Welcome
@@ -415,11 +416,159 @@ Promoting configs from from dev -> stage -> prod can be as simple as:
 
 The GitOps operator in each Kubernetes cluster will pull the environment configuration from this `GraphOps Repo` and any changes will be applied to that cluster.
 
-## GitOps & Progressive Delivery
+## GitOps
 
 CD via GitOps:
 
 * via GitOps operators like [Flux](https://fluxcd.io/) and [ArgoCD](https://argoproj.github.io/argo-cd/)
+
+We'll use `flux` v2 for this example, so you'll need:
+
+* [flux](https://fluxcd.io/docs/cmd/)
+
+then run:
+
+```sh
+make demo-flux
+```
+
+which runs:
+
+```sh
+make k8s-up-flux-dev
+```
+
+which shows something like:
+
+```
+.scripts/k8s-up-flux.sh dev
+Using dev/kustomization.yaml
+kind version 0.11.1
+No kind clusters found.
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.21.1) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+ ✓ Waiting ≤ 5m0s for control-plane = Ready ⏳
+ • Ready after 28s 💚
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
+
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+✚ generating manifests
+✔ manifests build completed
+► installing components in flux-system namespace
+◎ verifying installation
+✔ source-controller: deployment ready
+✔ kustomize-controller: deployment ready
+✔ helm-controller: deployment ready
+✔ notification-controller: deployment ready
+✔ install finished
+✚ generating GitRepository source
+► applying GitRepository source
+✔ GitRepository source created
+◎ waiting for GitRepository source reconciliation
+✔ GitRepository source reconciliation completed
+✔ fetched revision: main/43c1c8990b7bdecde49eec2360f839813b769e81
+✚ generating Kustomization
+► applying Kustomization
+✔ Kustomization created
+◎ waiting for Kustomization reconciliation
+✔ Kustomization infra is ready
+✔ applied revision main/43c1c8990b7bdecde49eec2360f839813b769e81
+✚ generating Kustomization
+► applying Kustomization
+✔ Kustomization created
+◎ waiting for Kustomization reconciliation
+✔ Kustomization subgraphs is ready
+✔ applied revision main/43c1c8990b7bdecde49eec2360f839813b769e81
+✚ generating Kustomization
+► applying Kustomization
+✔ Kustomization created
+◎ waiting for Kustomization reconciliation
+```
+
+the router ingress config needs the nginx ingress controller, so you'll see this while the nginx ingress admission controller is starting, but with GitOps and `flux` the configuration will be re-applied so will self-heal once it's started:
+
+```
+✗ apply failed: Error from server (InternalError): error when creating "d19c481c-1209-4177-b62f-b1ab83c027ac.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1beta1/ingresses?timeout=10s": context deadline exceeded
+```
+
+then smoke tests will run while the nginx ingress admission controller is starting, with the initial tests failing while the nginx admission controller is starting:
+
+```
+-------------------------
+Test 1
+-------------------------
+++ curl -X POST -H 'Content-Type: application/json' --data '{ "query": "{allProducts{delivery{estimatedDelivery,fastestDelivery},createdBy{name,email}}}" }' http://localhost:80/
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   241  100   146  100    95  29200  19000 --:--:-- --:--:-- --:--:-- 48200
+-------------------------
+❌ Test 1
+-------------------------
+[Expected]
+{"data":{"allProducts":[{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}},{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}}]}}
+-------------------------
+[Actual]
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx</center>
+</body>
+</html>
+-------------------------
+❌ Test 1
+-------------------------
+```
+
+and then once it's started and the router ingress can be applied, the smoke tests will pass:
+
+```
+-------------------------
+Test 1
+-------------------------
+++ curl -X POST -H 'Content-Type: application/json' --data '{ "query": "{allProducts{delivery{estimatedDelivery,fastestDelivery},createdBy{name,email}}}" }' http://localhost:80/
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   438  100   343  100    95   1982    549 --:--:-- --:--:-- --:--:--  2531
+
+Result:
+{"data":{"allProducts":[{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}},{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}}]}}
+
+✅ Test 1
+
+-------------------------
+Test 2
+-------------------------
+++ curl -X POST -H 'Content-Type: application/json' --data '{ "query": "{allProducts{id,sku,createdBy{email,totalProductsCreated}}}" }' http://localhost:80/
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   341  100   267  100    74  17800   4933 --:--:-- --:--:-- --:--:-- 22733
+
+Result:
+{"data":{"allProducts":[{"id":"apollo-federation","sku":"federation","createdBy":{"email":"support@apollographql.com","totalProductsCreated":1337}},{"id":"apollo-studio","sku":"studio","createdBy":{"email":"support@apollographql.com","totalProductsCreated":1337}}]}}
+
+✅ Test 2
+
+✅ All tests pass! 🚀
+```
+
+then finally the kind cluster will be deleted:
+
+```
+.scripts/k8s-down.sh
+Deleting cluster "kind" ...
+```
+
+## Progressive Delivery
+
 * using progressive delivery controllers like [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) and [Flagger](https://flagger.app/)
 * or your favorite tools!
 
