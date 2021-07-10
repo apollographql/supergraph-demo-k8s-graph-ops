@@ -4,6 +4,9 @@ default: demo
 .PHONY: demo
 demo: k8s-up-dev smoke k8s-down
 
+.PHONY: demo-flux
+demo-flux: k8s-up-flux-dev smoke k8s-down
+
 .PHONY: k8s-up
 k8s-up:
 	.scripts/k8s-up.sh
@@ -19,6 +22,22 @@ k8s-up-stage:
 .PHONY: k8s-up-prod
 k8s-up-prod:
 	.scripts/k8s-up.sh prod
+
+.PHONY: k8s-up-flux
+k8s-up-flux:
+	.scripts/k8s-up-flux.sh
+
+.PHONY: k8s-up-flux-dev
+k8s-up-flux-dev:
+	.scripts/k8s-up-flux.sh dev
+
+.PHONY: k8s-up-flux-stage
+k8s-up-flux-stage:
+	.scripts/k8s-up-flux.sh stage
+
+.PHONY: k8s-up-flux-prod
+k8s-up-flux-prod:
+	.scripts/k8s-up-flux.sh prod
 
 .PHONY: query
 query:
