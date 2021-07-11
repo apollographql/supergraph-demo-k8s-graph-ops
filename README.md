@@ -445,6 +445,8 @@ which shows something like:
 Using dev/kustomization.yaml
 kind version 0.11.1
 No kind clusters found.
+
++ kind create cluster --image kindest/node:v1.21.1 --config=clusters/kind-cluster.yaml --wait 5m
 Creating cluster "kind" ...
  ✓ Ensuring node image (kindest/node:v1.21.1) 🖼
  ✓ Preparing nodes 📦
@@ -460,6 +462,8 @@ You can now use your cluster with:
 kubectl cluster-info --context kind-kind
 
 Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+
++ flux install
 ✚ generating manifests
 ✔ manifests build completed
 ► installing components in flux-system namespace
@@ -469,24 +473,32 @@ Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/qui
 ✔ helm-controller: deployment ready
 ✔ notification-controller: deployment ready
 ✔ install finished
+
++ flux create source git k8s-graph-ops --url=https://github.com/apollographql/supergraph-demo-k8s-graph-ops.git --branch=main
 ✚ generating GitRepository source
 ► applying GitRepository source
 ✔ GitRepository source created
 ◎ waiting for GitRepository source reconciliation
 ✔ GitRepository source reconciliation completed
-✔ fetched revision: main/43c1c8990b7bdecde49eec2360f839813b769e81
+✔ fetched revision: main/13fbe62857a713f396947a552d0d72ca760d3010
+
++ flux create kustomization infra --namespace=default --source=GitRepository/k8s-graph-ops.flux-system --path=./infra/dev --prune=true --interval=1m --validation=client
 ✚ generating Kustomization
 ► applying Kustomization
 ✔ Kustomization created
 ◎ waiting for Kustomization reconciliation
 ✔ Kustomization infra is ready
-✔ applied revision main/43c1c8990b7bdecde49eec2360f839813b769e81
+✔ applied revision main/13fbe62857a713f396947a552d0d72ca760d3010
+
++ flux create kustomization subgraphs --namespace=default --source=GitRepository/k8s-graph-ops.flux-system --path=./subgraphs/dev --prune=true --interval=1m --validation=client
 ✚ generating Kustomization
 ► applying Kustomization
 ✔ Kustomization created
 ◎ waiting for Kustomization reconciliation
 ✔ Kustomization subgraphs is ready
-✔ applied revision main/43c1c8990b7bdecde49eec2360f839813b769e81
+✔ applied revision main/13fbe62857a713f396947a552d0d72ca760d3010
+
++ flux create kustomization router --depends-on=infra --namespace=default --source=GitRepository/k8s-graph-ops.flux-system --path=./router/dev --prune=true --interval=1m --validation=client
 ✚ generating Kustomization
 ► applying Kustomization
 ✔ Kustomization created
@@ -496,7 +508,7 @@ Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/qui
 the router ingress config needs the nginx ingress controller, so you'll see this while the nginx ingress admission controller is starting, but with GitOps and `flux` the configuration will be re-applied so will self-heal once it's started:
 
 ```
-✗ apply failed: Error from server (InternalError): error when creating "d19c481c-1209-4177-b62f-b1ab83c027ac.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1beta1/ingresses?timeout=10s": context deadline exceeded
+✗ apply failed: Error from server (InternalError): error when creating "3a946b48-8ea1-4516-8dcf-7341332f4d88.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1beta1/ingresses?timeout=10s": dial tcp 10.96.26.139:443: i/o timeout
 ```
 
 then smoke tests will run while the nginx ingress admission controller is starting, with the initial tests failing while the nginx admission controller is starting:

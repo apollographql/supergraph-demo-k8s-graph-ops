@@ -10,6 +10,9 @@ if [ $(kind get clusters | grep -E 'kind') ]
 then
   kind delete cluster --name kind
 fi
+
+set -x
+
 kind create cluster --image kindest/node:v1.21.1 --config=clusters/kind-cluster.yaml --wait 5m
 
 flux install
@@ -47,5 +50,3 @@ kubectl wait --namespace ingress-nginx \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/component=controller \
   --timeout=120s
-
-echo "Cluster bootstrapped to pull from supergraph-demo-k8s-graph-ops!"
