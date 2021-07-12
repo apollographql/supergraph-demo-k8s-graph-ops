@@ -4,5 +4,3 @@ resources:
   - router.yaml
 configMapGenerator:
 - name: supergraph
-  files:
-  - ./supergraph.graphql
