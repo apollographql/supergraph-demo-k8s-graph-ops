@@ -1,6 +1,6 @@
 #!/bin/bash
 
-KUSTOMIZE_ENV="${1:-base}"
+KUSTOMIZE_ENV="${1:-dev}"
 
 echo "Using ${KUSTOMIZE_ENV}/kustomization.yaml"
 
