@@ -1,0 +1,179 @@
+name: CI GitOps
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      retestAll:
+        description: 'Retest all environments (yes/no)'
+        required: false
+        default: 'yes'
+
+jobs:
+  ci-matrix:
+    name: Create CI matrix
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.matrix.outputs.environments }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      count: ${{ steps.matrix.outputs.count }}
+    steps:
+      - uses: actions/checkout@v2
+      -
+        name: generate matrix
+        id: matrix
+        env:
+          GITHUB_SHA: ${{ env.GITHUB_SHA}}
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          RETEST_ALL: ${{ github.event.inputs && github.event.inputs.retestAll == 'yes' }}
+        run: |
+          ENVIRONMENTS=$(.scripts/ci-matrix.sh)
+          if [[ "$RETEST_ALL" == "true" ]]; then
+            MATRIX="$ENVIRONMENTS"
+          else
+            MATRIX=$(jq -c ' .include |= map(select(.changes=="1")) ' <<< "$ENVIRONMENTS")
+          fi
+          echo "::set-output name=environments::$( echo "$ENVIRONMENTS" )"
+          echo "::set-output name=matrix::$( echo "$MATRIX" )"
+          echo "::set-output name=count::$( echo "$MATRIX" | jq ' .include | length ' )"
+      -
+        name: environments
+        env:
+          ENVIRONMENTS: ${{ steps.matrix.outputs.environments }}
+          MATRIX: ${{ steps.matrix.outputs.matrix }}
+          COUNT: ${{ steps.matrix.outputs.count }}
+          RETEST_ALL: ${{ github.event.inputs && github.event.inputs.retestAll == 'yes' }}
+        run: |
+          echo "--------------------------------"
+          echo "       ALL ENVIRONMENTS         "
+          echo "--------------------------------"
+          echo "$ENVIRONMENTS" | jq
+
+          echo "--------------------------------"
+          echo "        TEST MATRIX             "
+          echo "--------------------------------"
+          if [[ "$RETEST_ALL" == "true" ]]; then
+            echo "   *** FORCE RETEST ***      "
+          fi
+          if [[ "$COUNT" -eq 0 ]]; then
+            echo "   *** EMPTY MATRIX ***      "
+          fi
+          echo "$MATRIX" | jq
+
+  found-environments-to-test:
+    name: Environment changes detected
+    runs-on: ubuntu-latest
+    needs: ci-matrix
+    if: needs.ci-matrix.outputs.count > 0
+    steps:
+      - name: Found ${{ needs.ci-matrix.outputs.count }} environments to test
+        env:
+          ENVIRONMENTS: ${{ needs.ci-matrix.outputs.environments }}
+          MATRIX: ${{ needs.ci-matrix.outputs.matrix }}
+          COUNT: ${{ needs.ci-matrix.outputs.count }}
+          RETEST_ALL: ${{ github.event.inputs && github.event.inputs.retestAll == 'yes' }}
+        run: |
+          echo "--------------------------------"
+          echo "       ALL ENVIRONMENTS         "
+          echo "--------------------------------"
+          echo "$ENVIRONMENTS" | jq
+
+          echo "--------------------------------"
+          echo "        TEST MATRIX             "
+          echo "--------------------------------"
+          if [[ "$RETEST_ALL" == "true" ]]; then
+            echo "   *** FORCE RETEST ***      "
+          fi
+          if [[ "$COUNT" -eq 0 ]]; then
+            echo "   *** EMPTY MATRIX ***      "
+          fi
+          echo "$MATRIX" | jq
+
+  ci-k8s:
+    runs-on: ubuntu-latest
+    needs: [ci-matrix]
+    if: needs.ci-matrix.outputs.count > 0
+    strategy:
+      matrix: ${{ fromJson(needs.ci-matrix.outputs.matrix) }}
+    name: CI ${{ matrix.env }}
+    steps:
+      -
+        name: Info
+        run: |
+          echo --------------------------------------------
+          echo env: ${{ matrix.env }}
+          echo changes: ${{ matrix.changes }}
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: update kind
+        run: |
+          #kind
+          echo ---------------------------------------------------------------
+          echo kind - installing ...
+          echo ---------------------------------------------------------------
+          BIN_DIR=$HOME/.kind/bin
+          mkdir -p $BIN_DIR
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
+          chmod +x ./kind
+          echo "downloaded $(./kind --version)"
+          mv ./kind $BIN_DIR
+          echo "$BIN_DIR" >> ${GITHUB_PATH}
+          echo ---------------------------------------------------------------
+      -
+        name: update kubectl
+        run: |
+          #kubectl
+          echo ---------------------------------------------------------------
+          echo kubectl - installing ...
+          echo ---------------------------------------------------------------
+          BIN_DIR=$HOME/.kubectl/bin
+          mkdir -p $BIN_DIR
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          echo "downloaded kubectl: $(./kubectl version --short --client)"
+          mv ./kubectl $BIN_DIR
+          echo "$BIN_DIR" >> ${GITHUB_PATH}
+          echo ---------------------------------------------------------------
+      -
+        name: update flux v2
+        run: |
+          #flux v2
+          echo ---------------------------------------------------------------
+          echo flux v2 - installing ...
+          echo ---------------------------------------------------------------
+          BIN_DIR=$HOME/.flux/bin
+          mkdir -p $BIN_DIR
+          curl -s https://fluxcd.io/install.sh | bash -s "$BIN_DIR"
+          echo "downloaded flux: $($BIN_DIR/flux --version)"
+          echo "$BIN_DIR" >> ${GITHUB_PATH}
+          echo ---------------------------------------------------------------
+      -
+        name: check tools
+        run: |
+          echo ---------------------------------------------------------------
+          echo "$(kind --version)"
+          echo ---------------------------------------------------------------
+          echo "kubectl $(kubectl version --short --client)"
+          echo ---------------------------------------------------------------
+          echo "$(flux --version)"
+          echo ---------------------------------------------------------------
+      -
+        name: test-k8s
+        run: |
+          echo ---------------------------------------------------------------
+          echo K8S Smoke Test
+          echo ---------------------------------------------------------------
+          .scripts/k8s-ci-gitops.sh ${{ matrix.env }}
+
+  ci-k8s-passed:
+    name: CI Passed
+    runs-on: ubuntu-latest
+    needs: [ci-k8s]
+    if: needs.ci-matrix.outputs.count > 0
+    steps:
+      -
+        name: Info
+        run: |
+          echo "CI Passed!"
