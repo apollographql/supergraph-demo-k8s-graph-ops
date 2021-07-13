@@ -1,0 +1,61 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: products-bluegreen
+spec:
+  replicas: 1
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: products
+  revisionHistoryLimit: 3
+  minReadySeconds: 30
+
+  strategy:
+    blueGreen:
+      activeService: products
+      previewService: products-preview
+      # Rollouts can be resumed using: `kubectl argo rollouts promote ROLLOUT`
+      autoPromotionEnabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: inventory-bluegreen
+spec:
+  replicas: 1
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: inventory
+
+  revisionHistoryLimit: 3
+  minReadySeconds: 30
+
+  strategy:
+    blueGreen:
+      activeService: inventory
+      previewService: inventory-preview
+      # Rollouts can be resumed using: `kubectl argo rollouts promote ROLLOUT`
+      autoPromotionEnabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: users-bluegreen
+spec:
+  replicas: 1
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: users
+
+  revisionHistoryLimit: 3
+  minReadySeconds: 30
+
+  strategy:
+    blueGreen:
+      activeService: users
+      previewService: users-preview
+      # Rollouts can be resumed using: `kubectl argo rollouts promote ROLLOUT`
+      autoPromotionEnabled: false
