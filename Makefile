@@ -8,8 +8,7 @@ demo: k8s-up-dev smoke k8s-down
 demo-flux: k8s-up-flux-dev smoke k8s-down
 
 .PHONY: k8s-up
-k8s-up:
-	.scripts/k8s-up.sh
+k8s-up: k8s-up-dev
 
 .PHONY: k8s-up-dev
 k8s-up-dev:
@@ -24,8 +23,7 @@ k8s-up-prod:
 	.scripts/k8s-up.sh prod
 
 .PHONY: k8s-up-flux
-k8s-up-flux:
-	.scripts/k8s-up-flux.sh
+k8s-up-flux: k8s-up-flux-dev
 
 .PHONY: k8s-up-flux-dev
 k8s-up-flux-dev:
@@ -38,6 +36,36 @@ k8s-up-flux-stage:
 .PHONY: k8s-up-flux-prod
 k8s-up-flux-prod:
 	.scripts/k8s-up-flux.sh prod
+
+.PHONY: k8s-up-bluegreen
+k8s-up-bluegreen: k8s-up-dev-bluegreen
+
+.PHONY: k8s-up-dev-bluegreen
+k8s-up-dev-bluegreen:
+	.scripts/k8s-up.sh dev bluegreen
+
+.PHONY: k8s-up-stage-bluegreen
+k8s-up-stage-bluegreen:
+	.scripts/k8s-up.sh stage bluegreen
+
+.PHONY: k8s-up-prod-bluegreen
+k8s-up-prod-bluegreen:
+	.scripts/k8s-up.sh prod bluegreen
+
+.PHONY: k8s-up-flux-bluegreen
+k8s-up-flux-bluegreen: k8s-up-flux-dev-bluegreen
+
+.PHONY: k8s-up-flux-dev-bluegreen
+k8s-up-flux-dev-bluegreen:
+	.scripts/k8s-up-flux.sh dev bluegreen
+
+.PHONY: k8s-up-flux-stage-bluegreen
+k8s-up-flux-stage-bluegreen:
+	.scripts/k8s-up-flux.sh stage bluegreen
+
+.PHONY: k8s-up-flux-prod-bluegreen
+k8s-up-flux-prod-bluegreen:
+	.scripts/k8s-up-flux.sh prod bluegreen
 
 .PHONY: query
 query:
