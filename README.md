@@ -17,6 +17,7 @@ Contents:
 * [Promoting to Stage and Prod](#promoting-to-stage-and-prod)
 * [GitOps](#gitops)
 * [Progressive Delivery](#progressive-delivery)
+  * [BlueGreen Deploys with Argo Rollouts](#bluegreen-deploys-with-argo-rollouts)
 * [Learn More](#learn-more)
 
 ## Welcome
@@ -584,7 +585,278 @@ Deleting cluster "kind" ...
 * using progressive delivery controllers like [Argo Rollouts](https://argoproj.github.io/argo-rollouts/) and [Flagger](https://flagger.app/)
 * or your favorite tools!
 
-Example coming soon!
+See the `BlueGreen` example below with more advanced examples coming soon!
+
+### BlueGreen Deploys with Argo Rollouts
+
+We'll use [Argo Rollouts](https://argoproj.github.io/argo-rollouts/features/bluegreen/) to do a basic `BlueGreen` deployment in this example.
+
+#### Initial Deployment
+
+```
+make k8s-up-flux-bluegreen
+```
+
+which does does a `BlueGreen` deploy of the subgraphs using `GitOps` and [subgraphs/dev-bluegreen/kustomization.yaml](subgraphs/dev-bluegreen/kustomization.yaml)
+
+and shows the following:
+
+```
+.scripts/k8s-up-flux.sh dev bluegreen
+Using Kustomizations:
+- infra/dev/kustomization.yaml
+- subgraphs/dev-bluegreen/kustomization.yaml
+- router/dev/kustomization.yaml
+kind version 0.11.1
+No kind clusters found.
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.21.1) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+ ✓ Waiting ≤ 5m0s for control-plane = Ready ⏳
+ • Ready after 28s 💚
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
+
+Thanks for using kind! 😊
++ flux install
+✚ generating manifests
+✔ manifests build completed
+► installing components in flux-system namespace
+◎ verifying installation
+✔ notification-controller: deployment ready
+✔ source-controller: deployment ready
+✔ kustomize-controller: deployment ready
+✔ helm-controller: deployment ready
+✔ install finished
+
++ flux create source git k8s-graph-ops --url=https://github.com/apollographql/supergraph-demo-k8s-graph-ops.git --branch=main
+✚ generating GitRepository source
+► applying GitRepository source
+✔ GitRepository source created
+◎ waiting for GitRepository source reconciliation
+✔ GitRepository source reconciliation completed
+✔ fetched revision: main/9c6b88c18faecc76047a75e842f837c00d79f1f4
+
++ flux create kustomization infra --namespace=default --source=GitRepository/k8s-graph-ops.flux-system --path=./infra/dev --prune=true --interval=1m --validation=client
+✚ generating Kustomization
+► applying Kustomization
+✔ Kustomization created
+◎ waiting for Kustomization reconciliation
+✔ Kustomization infra is ready
+✔ applied revision main/9c6b88c18faecc76047a75e842f837c00d79f1f4
+
++ flux create kustomization subgraphs --namespace=default --source=GitRepository/k8s-graph-ops.flux-system --path=./subgraphs/dev-bluegreen --prune=true --interval=1m --validation=client
+✚ generating Kustomization
+► applying Kustomization
+✔ Kustomization created
+◎ waiting for Kustomization reconciliation
+✔ Kustomization subgraphs is ready
+✔ applied revision main/9c6b88c18faecc76047a75e842f837c00d79f1f4
+
++ flux create kustomization router --depends-on=infra --namespace=default --source=GitRepository/k8s-graph-ops.flux-system --path=./router/dev --prune=true --interval=1m --validation=client
+✚ generating Kustomization
+► applying Kustomization
+✔ Kustomization created
+◎ waiting for Kustomization reconciliation
+✗ apply failed: Error from server (InternalError): error when creating "76b5f11b-1666-48d5-80ca-862d183f2248.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1beta1/ingresses?timeout=10s": context deadline exceeded
+
++ kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
+pod/ingress-nginx-controller-6cd89dbf45-sjs49 condition met
+```
+
+#### Verify Initial Deployment
+
+you can then run:
+
+```
+make smoke
+```
+
+which shows the following:
+
+```
+.scripts/k8s-smoke.sh
+-------------------------
+Test 1
+-------------------------
+++ curl -X POST -H 'Content-Type: application/json' --data '{ "query": "{allProducts{delivery{estimatedDelivery,fastestDelivery},createdBy{name,email}}}" }' http://localhost:80/
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   438  100   343  100    95   1366    378 --:--:-- --:--:-- --:--:--  1745
+
+Result:
+{"data":{"allProducts":[{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}},{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}}]}}
+
+✅ Test 1
+
+-------------------------
+Test 2
+-------------------------
+++ curl -X POST -H 'Content-Type: application/json' --data '{ "query": "{allProducts{id,sku,createdBy{email,totalProductsCreated}}}" }' http://localhost:80/
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   341  100   267  100    74  14052   3894 --:--:-- --:--:-- --:--:-- 17947
+
+Result:
+{"data":{"allProducts":[{"id":"apollo-federation","sku":"federation","createdBy":{"email":"support@apollographql.com","totalProductsCreated":1337}},{"id":"apollo-studio","sku":"studio","createdBy":{"email":"support@apollographql.com","totalProductsCreated":1337}}]}}
+
+✅ Test 2
+
+✅ All tests pass! 🚀
+```
+
+using these `Rollouts`:
+
+```
+kubectl get rollouts
+
+NAME                  DESIRED   CURRENT   UP-TO-DATE   AVAILABLE
+inventory-bluegreen   1         1         1            1
+products-bluegreen    1         1         1            1
+users-bluegreen       1         1         1            1
+```
+
+and these `Kustomizations`:
+
+```
+kubectl get kustomization
+NAME        READY   STATUS                                                            AGE
+infra       True    Applied revision: main/9c6b88c18faecc76047a75e842f837c00d79f1f4   2m9s
+router      True    Applied revision: main/9c6b88c18faecc76047a75e842f837c00d79f1f4   107s
+subgraphs   True    Applied revision: main/9c6b88c18faecc76047a75e842f837c00d79f1f4   109s
+```
+
+#### Make a Change to the Products Subgraph
+
+Pushing a subgraph change to the products subgraph in the [supergraph-demo](https://github.com/apollographql/supergraph-demo/commit/7eab92087c204e2fdd0f9fc500113fc242b9a1a3) results in:
+
+* [new products docker image](https://github.com/apollographql/supergraph-demo/commit/9ed8f92acf766af036fb3107de9f67999bf9c475) being pushed
+* an associated [config repo PR](https://github.com/apollographql/supergraph-demo-k8s-graph-ops/commit/b4e5b385ac6ddb145cf2f95f77bda678997c75e4) being landed in [supergraph-demo-k8s-graph-ops](https://github.com/apollographql/supergraph-demo-k8s-graph-ops)
+* Flux GitOps controller picks up the new config repo commit:
+
+```
+kubectl get kustomization
+NAME        READY   STATUS                                                            AGE
+infra       True    Applied revision: main/b4e5b385ac6ddb145cf2f95f77bda678997c75e4   78m
+router      True    Applied revision: main/b4e5b385ac6ddb145cf2f95f77bda678997c75e4   78m
+subgraphs   True    Applied revision: main/b4e5b385ac6ddb145cf2f95f77bda678997c75e4   78m
+```
+
+#### Preview Deployment Created
+
+* the Argo Rollouts controller then deploys a new bluegreen deployment and makes it available via the [product preview-service](subgraphs/bluegreen/preview-services.yaml).
+
+Which shows the following:
+
+```
+kubectl get rollouts
+NAME                  DESIRED   CURRENT   UP-TO-DATE   AVAILABLE
+inventory-bluegreen   1         1         1            1
+products-bluegreen    1         2         1            1
+users-bluegreen       1         1         1            1
+
+kubectl get pods
+NAME                                       READY   STATUS    RESTARTS   AGE
+pod/inventory-bluegreen-59d479fc9f-57fqw   1/1     Running   0          78m
+pod/products-bluegreen-599c9f6c88-k7dwx    1/1     Running   0          78m
+pod/products-bluegreen-6fb56d84ff-k2jks    1/1     Running   0          67m
+pod/router-deployment-588b77bc9b-k9gz5     1/1     Running   0          78m
+pod/users-bluegreen-6b789d8cb7-wrxt7       1/1     Running   0          78m
+```
+
+#### Promote Preview Deployment to Active
+
+Since we've set the [product subgraph rollout](subgraphs/bluegreen/subgraph-rollout.yaml) to have:
+
+```yaml
+ # Rollouts can be resumed using: `kubectl argo rollouts promote ROLLOUT`
+      autoPromotionEnabled: false
+```
+
+we can install and use the [Argo Rollouts Kubectl Plugin](https://argoproj.github.io/argo-rollouts/installation/#kubectl-plugin-installation) to manually promote the `BlueGreen` deployment for the product service:
+
+```
+kubectl argo rollouts promote products-bluegreen
+rollout 'products-bluegreen' promoted
+```
+
+which results in the `preview` products deployment becoming `active` and the previous `active` deployment being decomissioned, resulting in one `active` pod and replicaset for the products subgraph.
+
+```
+kubectl get rollouts
+NAME                  DESIRED   CURRENT   UP-TO-DATE   AVAILABLE
+inventory-bluegreen   1         1         1            1
+products-bluegreen    1         1         1            1
+users-bluegreen       1         1         1            1
+```
+
+and
+
+```
+kubectl get pods
+NAME                                       READY   STATUS    RESTARTS   AGE
+pod/inventory-bluegreen-59d479fc9f-57fqw   1/1     Running   0          80m
+pod/products-bluegreen-6fb56d84ff-k2jks    1/1     Running   0          69m
+pod/router-deployment-588b77bc9b-k9gz5     1/1     Running   0          80m
+pod/users-bluegreen-6b789d8cb7-wrxt7       1/1     Running   0          80m
+```
+
+#### Verify new Active Deployment
+
+```
+make smoke
+```
+
+which shows:
+
+```
+-------------------------
+Test 1
+-------------------------
+++ curl -X POST -H 'Content-Type: application/json' --data '{ "query": "{allProducts{delivery{estimatedDelivery,fastestDelivery},createdBy{name,email}}}" }' http://localhost:80/
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   438  100   343  100    95    641    177 --:--:-- --:--:-- --:--:--   818
+
+Result:
+{"data":{"allProducts":[{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}},{"delivery":{"estimatedDelivery":"6/25/2021","fastestDelivery":"6/24/2021"},"createdBy":{"name":"Apollo Studio Support","email":"support@apollographql.com"}}]}}
+
+✅ Test 1
+
+-------------------------
+Test 2
+-------------------------
+++ curl -X POST -H 'Content-Type: application/json' --data '{ "query": "{allProducts{id,sku,createdBy{email,totalProductsCreated}}}" }' http://localhost:80/
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   341  100   267  100    74  22250   6166 --:--:-- --:--:-- --:--:-- 28416
+
+Result:
+{"data":{"allProducts":[{"id":"apollo-federation","sku":"federation","createdBy":{"email":"support@apollographql.com","totalProductsCreated":1337}},{"id":"apollo-studio","sku":"studio","createdBy":{"email":"support@apollographql.com","totalProductsCreated":1337}}]}}
+
+✅ Test 2
+
+✅ All tests pass! 🚀
+```
+
+#### Cleanup
+
+```
+make k8s-down
+```
+
+which shows
+
+```
+.scripts/k8s-down.sh
+Deleting cluster "kind" ...
+```
 
 ## Learn More
 
