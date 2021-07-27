@@ -4,7 +4,7 @@ This is the `GraphOps Repo` for the [apollographq/supergraph-demo](https://githu
 
 ![CI](https://github.com/apollographql/supergraph-demo-gitops/actions/workflows/main.yml/badge.svg)
 
-![Apollo Federation with Supergraphs](docs/media/supergraph.png)
+![GraphOps for Apollo Federation](docs/media/graphops.png)
 
 Contents:
 
