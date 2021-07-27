@@ -1,4 +1,4 @@
-schema @core(feature: "https://specs.apollo.dev/core/v0.1") @core(feature: "https://specs.apollo.dev/join/v0.1") @core(feature: "https://specs.apollo.dev/tag/v0.1") @apollo_studio_metadata(launchId: "691d78db-5f2e-4e6e-af4e-ee01cbf0eec5", buildId: "691d78db-5f2e-4e6e-af4e-ee01cbf0eec5", checkId: null) {
+schema @core(feature: "https://specs.apollo.dev/core/v0.1") @core(feature: "https://specs.apollo.dev/join/v0.1") @core(feature: "https://specs.apollo.dev/tag/v0.1") @apollo_studio_metadata(launchId: "a1702236-5bc5-4e9b-9016-c8dd9c723629", buildId: "a1702236-5bc5-4e9b-9016-c8dd9c723629", checkId: null) {
   query: Query
 }
 
