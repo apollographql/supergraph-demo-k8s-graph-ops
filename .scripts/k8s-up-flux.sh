@@ -16,7 +16,6 @@ flux create kustomization infra \
   --path="./infra/${INFRA_ENV}" \
   --prune=true \
   --interval=1m \
-  --validation=client
 
 flux create kustomization subgraphs \
   --namespace=default \
@@ -24,7 +23,6 @@ flux create kustomization subgraphs \
   --path="./subgraphs/${SUBGRAPHS_ENV}" \
   --prune=true \
   --interval=1m \
-  --validation=client
 
 flux create kustomization router \
   --depends-on=infra \
@@ -33,7 +31,6 @@ flux create kustomization router \
   --path="./router/${ROUTER_ENV}" \
   --prune=true \
   --interval=1m \
-  --validation=client
 
 kubectl wait --namespace ingress-nginx \
   --for=condition=ready pod \

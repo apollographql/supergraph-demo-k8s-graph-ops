@@ -4,3 +4,4 @@ resources:
   - router.yaml
 configMapGenerator:
 - name: supergraph
+  namespace: default
