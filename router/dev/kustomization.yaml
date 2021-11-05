@@ -5,6 +5,7 @@ configMapGenerator:
   files:
   - ./supergraph.graphql
   name: supergraph
+  namespace: default
 resources:
 - ../base
 images:
