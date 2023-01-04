@@ -1,5 +1,13 @@
 # Kubernetes-native GraphOps
 
+## Archived
+
+**The code in this repository is experimental and has been provided for reference purposes only. It is not actively maintained and has been archived.**
+
+Many folks have already [migrated to Federation 2](https://www.apollographql.com/docs/federation/federation-2/moving-to-federation-2). If you're starting something new, please see the latest [Federation docs](https://www.apollographql.com/docs/federation/)!
+
+## Original Content
+
 This is the `GraphOps Repo` for the [apollographq/supergraph-demo](https://github.com/apollographql/supergraph-demo) `Source Repo`.
 
 ![CI](https://github.com/apollographql/supergraph-demo-gitops/actions/workflows/main.yml/badge.svg)
